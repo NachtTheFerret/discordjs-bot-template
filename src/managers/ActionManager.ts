@@ -65,7 +65,7 @@ export class ActionManager {
     if (!data || !data.default) throw new Error(`File ${fullPath} does not export a default action.`);
 
     const action: Action<ActionType> = data.default;
-    if (typeof action.enabled === 'boolean' && !action.enabled) throw new Error(`Action in ${fullPath} is disabled.`);
+    if (action.disabled) throw new Error(`Action in ${fullPath} is disabled.`);
 
     this.register(action, force);
   }
@@ -79,11 +79,7 @@ export class ActionManager {
    * @returns An array of file paths that failed to load.
    * @throws {Error} If the folder does not exist or is not a directory.
    */
-  public async loadFolder(
-    folder: string,
-    recursive = true,
-    force = false
-  ): Promise<{ message: string; path: string }[]> {
+  public async loadFolder(folder: string, recursive = true, force = false): Promise<{ error: Error; path: string }[]> {
     const fullPath = path.resolve(BASE_ACTIONS_PATH, folder);
     if (!fs.existsSync(fullPath)) throw new Error(`Folder ${fullPath} does not exist.`);
 
@@ -92,21 +88,19 @@ export class ActionManager {
 
     const files = fs.readdirSync(fullPath);
 
-    const failedFiles: { message: string; path: string }[] = [];
+    const failedFiles: { error: Error; path: string }[] = [];
 
     for (const file of files) {
       const filePath = path.join(fullPath, file);
       const fileStats = fs.statSync(filePath);
 
       if (fileStats.isDirectory() && recursive) {
-        await this.loadFolder(filePath, recursive, force);
+        const subFailedFiles = await this.loadFolder(filePath, recursive, force);
+        failedFiles.push(...subFailedFiles);
       } else if (fileStats.isFile()) {
-        try {
-          await this.load(filePath, force);
-        } catch (error) {
-          failedFiles.push({ message: error instanceof Error ? error.message : String(error), path: filePath });
-          console.error(`Failed to load action from ${filePath}:`, error);
-        }
+        await this.load(filePath, force).catch((error) => {
+          failedFiles.push({ error, path: filePath });
+        });
       }
     }
 

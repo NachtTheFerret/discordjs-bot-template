@@ -1,5 +1,5 @@
 import { Collection } from 'discord.js';
-import { Event } from '../typings';
+import { Event, EventCallback } from '../typings';
 import { EventType } from '../typings/enum';
 import fs from 'fs';
 import path from 'path';
@@ -39,7 +39,7 @@ export class EventManager {
     if (!data || !data.default) throw new Error(`File ${fullPath} does not export a default event.`);
 
     const event: Event<EventType> = data.default;
-    if (typeof event.enabled === 'boolean' && !event.enabled) throw new Error(`Event in ${fullPath} is disabled.`);
+    if (event.disabled) throw new Error(`Event in ${fullPath} is disabled.`);
 
     this.register(event, force);
   }
@@ -48,11 +48,7 @@ export class EventManager {
    * Loads all events from a folder and registers them.
    * If `recursive` is true, it will load events from subfolders as well.
    */
-  public async loadFolder(
-    folder: string,
-    recursive = true,
-    force = false
-  ): Promise<{ message: string; path: string }[]> {
+  public async loadFolder(folder: string, recursive = true, force = false): Promise<{ error: Error; path: string }[]> {
     const fullPath = path.resolve(BASE_EVENTS_PATH, folder);
     if (!fs.existsSync(fullPath)) throw new Error(`Folder ${fullPath} does not exist.`);
 
@@ -61,21 +57,19 @@ export class EventManager {
 
     const files = fs.readdirSync(fullPath);
 
-    const failedFiles: { message: string; path: string }[] = [];
+    const failedFiles: { error: Error; path: string }[] = [];
 
     for (const file of files) {
       const filePath = path.join(fullPath, file);
       const fileStats = fs.statSync(filePath);
 
       if (fileStats.isDirectory() && recursive) {
-        await this.loadFolder(filePath, recursive, force);
+        const subFailedFiles = await this.loadFolder(filePath, recursive, force);
+        failedFiles.push(...subFailedFiles);
       } else if (fileStats.isFile()) {
-        try {
-          await this.load(filePath, force);
-        } catch (error) {
-          failedFiles.push({ message: error instanceof Error ? error.message : String(error), path: filePath });
-          console.error(`Failed to load event from ${filePath}:`, error);
-        }
+        await this.load(filePath, force).catch((error) => {
+          failedFiles.push({ error, path: filePath });
+        });
       }
     }
 
@@ -120,5 +114,18 @@ export class EventManager {
    */
   public get all(): Collection<string, Event<EventType>> {
     return this.collection.clone();
+  }
+
+  public getListenerFromCallback(callback: EventCallback<EventType>): EventCallback<EventType> {
+    return async (...args: any[]) => {
+      try {
+        await callback(...args);
+      } catch (error) {
+        console.error(
+          `\x1b[31m❌ Error in event callback: ${error instanceof Error ? error.message : String(error)}\x1b[0m`
+        );
+        console.error('Stack trace:', error instanceof Error ? error.stack : 'No stack trace available');
+      }
+    };
   }
 }

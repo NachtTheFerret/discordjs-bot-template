@@ -7,6 +7,7 @@ import {
   AutoModerationRule,
   ButtonInteraction,
   ChannelSelectMenuInteraction,
+  ChatInputApplicationCommandData,
   ChatInputCommandInteraction,
   Client,
   DMChannel,
@@ -26,6 +27,7 @@ import {
   MediaChannel,
   MentionableSelectMenuInteraction,
   Message,
+  MessageApplicationCommandData,
   MessageContextMenuCommandInteraction,
   MessageReaction,
   MessageReactionEventDetails,
@@ -55,6 +57,7 @@ import {
   ThreadMember,
   Typing,
   User,
+  UserApplicationCommandData,
   UserContextMenuCommandInteraction,
   UserSelectMenuInteraction,
   VoiceChannel,
@@ -83,23 +86,7 @@ export type ActionCallback<Type extends ActionType> = (
   interaction: ActionCallbackParameters[Type]
 ) => unknown | Promise<unknown>;
 
-/**
- * Represents an action that can be registered and triggered in a Discord bot.
- * This can include commands, buttons, select menus, and more.
- * Each action has a unique identifier and a type that determines how it will be triggered.
- * @template Type - The type of action, which determines the interaction it handles.
- * @see {@link ActionType} for the list of available action types.
- * @example
- * ```typescript
- * const myAction: Action<ActionType.BUTTON> = {
- *   identifier: 'my-button-action',
- *   type: ActionType.BUTTON,
- *   callback: (interaction) => {
- *     console.log('Button clicked!', interaction);
- *   },
- * };
- */
-export type Action<Type extends ActionType> = {
+export interface BaseAction<Type extends ActionType> {
   /**
    * A unique identifier for the action.
    * This should be unique across all actions of the same type.
@@ -123,22 +110,6 @@ export type Action<Type extends ActionType> = {
    * @example ActionType.BUTTON
    */
   type: Type;
-
-  /**
-   * A human-readable name for the action.
-   * This is optional and can be used for documentation or debugging purposes.
-   * @example 'My Button Action'
-   * @default null
-   */
-  name?: string | null;
-
-  /**
-   * A description of the action.
-   * This is optional and can be used to provide more context about what the action does.
-   * @example 'This action handles button clicks.'
-   * @default null
-   */
-  description?: string | null;
 
   /**
    * An array of tags associated with the action.
@@ -184,7 +155,66 @@ export type Action<Type extends ActionType> = {
    * ```
    */
   callback: ActionCallback<Type>;
-};
+}
+
+/**
+ * Represents an action that can be registered and triggered in a Discord bot.
+ * This can include commands, buttons, select menus, and more.
+ * Each action has a unique identifier and a type that determines how it will be triggered.
+ * @template Type - The type of action, which determines the interaction it handles.
+ * @see {@link ActionType} for the list of available action types.
+ * @example
+ * ```typescript
+ * const myAction: Action<ActionType.BUTTON> = {
+ *   identifier: 'my-button-action',
+ *   type: ActionType.BUTTON,
+ *   callback: (interaction) => {
+ *     console.log('Button clicked!', interaction);
+ *   },
+ * };
+ */
+export type Action<Type extends ActionType> = BaseAction<Type> & {
+  type: ActionType.ChatInput | ActionType.MessageContext | ActionType.UserContext;
+
+  /**
+   * Whether the action is private.
+   * If false, the action will be registered globally and can be used by anyone.
+   * If true, the action won't be registered globally and can registered only in guilds.
+   * @default false
+   */
+  private?: boolean;
+} & (
+    | {
+        type: ActionType.ChatInput;
+
+        /**
+         * The data for the chat input application command.
+         * This is required for chat input commands and defines the command's name, description, options, etc.
+         * @see {@link https://discord.js.org/docs/packages/discord.js/14.21.0/ChatInputApplicationCommandData:Interface}
+         */
+        data: ChatInputApplicationCommandData;
+      }
+    | {
+        type: ActionType.MessageContext;
+
+        /**
+         * The data for the message application command.
+         * This is required for message context commands and defines the command's name, description, options, etc.
+         * @see {@link https://discord.js.org/docs/packages/discord.js/14.21.0/MessageApplicationCommandData:Interface}
+         */
+        data: MessageApplicationCommandData;
+      }
+    | {
+        type: ActionType.UserContext;
+
+        /**
+         * The data for the user context application command.
+         * This is required for user context commands and defines the command's name, description, options, etc.
+         * @see {@link https://discord.js.org/docs/packages/discord.js/14.21.0/UserApplicationCommandData:Interface}
+         */
+        data: UserApplicationCommandData;
+      }
+  );
 
 export interface EventCallbackParameters extends Record<EventType, unknown[]> {
   [EventType.ApplicationCommandPermissionsUpdate]: [data: ApplicationCommandPermissionsUpdateData];
@@ -366,22 +396,6 @@ export interface Event<Type extends EventType> {
    * @example EventType.MessageCreate
    */
   type: Type;
-
-  /**
-   * A human-readable name for the event.
-   * This is optional and can be used for documentation or debugging purposes.
-   * @example 'My Message Event'
-   * @default null
-   */
-  name?: string | null;
-
-  /**
-   * A description of the event.
-   * This is optional and can be used to provide more context about what the event does.
-   * @example 'This event handles new messages.'
-   * @default null
-   */
-  description?: string | null;
 
   /**
    * An array of tags associated with the event.
