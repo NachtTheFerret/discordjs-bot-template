@@ -1,0 +1,55 @@
+{
+  // Specifies which folders/files to include for compilation
+  "include": ["src"],
+
+  // Specifies which folders/files to exclude from compilation
+  // This is useful to avoid compiling unnecessary files like node_modules or build outputs
+  "exclude": ["node_modules", "dist"],
+
+  "compilerOptions": {
+    // Enable all strict type-checking options
+    // This is a good practice to catch potential issues early
+    "strict": true,
+
+    // Specify module code generation: CommonJS for Node.js
+    // This is the module system used by Node.js
+    "module": "CommonJS",
+
+    // How modules get resolved: use Node.js resolution
+    // This allows TypeScript to resolve modules like Node.js does
+    "moduleResolution": "node",
+
+    // Output directory for compiled files
+    // This is where the compiled JavaScript files will be placed
+    // It's a good practice to keep compiled files separate from source files
+    "outDir": "dist",
+
+    // Root directory of input files
+    // This is where TypeScript will look for source files
+    // It helps TypeScript understand the structure of your project
+    "rootDir": "src",
+
+    // Specify ECMAScript target version
+    // This determines the JavaScript version that TypeScript will compile to
+    // "esnext" allows you to use the latest JavaScript features
+    "target": "esnext",
+
+    // Enables compatibility between CommonJS and ES Modules
+    // This allows you to use `import` and `export` syntax in your code
+    // while still being able to import CommonJS modules
+    "esModuleInterop": true,
+
+    // Generates corresponding .map files for debugging
+    // Source maps help in debugging by mapping the compiled code back to the original TypeScript code
+    // This is useful for development and debugging purposes
+    "sourceMap": true,
+
+    // Generates declaration files (.d.ts)
+    // This is useful for libraries or modules that you want to share with others
+    "declaration": true,
+
+    // Allows importing JSON files
+    // This enables you to import JSON files directly in your TypeScript code
+    "resolveJsonModule": true
+  }
+}
