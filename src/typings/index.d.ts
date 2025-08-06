@@ -64,7 +64,7 @@ import {
 
 import { ActionType, EventType } from './enum';
 
-export interface ActionCallbackParameters {
+export interface ActionCallbackParameters extends Record<ActionType, Interaction> {
   [ActionType.Autocomplete]: AutocompleteInteraction;
   [ActionType.ChatInput]: ChatInputCommandInteraction;
   [ActionType.MessageContext]: MessageContextMenuCommandInteraction;
