@@ -109,11 +109,12 @@ export type Action<Type extends ActionType> = {
   identifier: string;
 
   /**
-   * Indicates whether the action is enabled.
-   * If set to false, the action will not be registered or executed.s
-   * @default true
+   * Whether the action is enabled or disabled.
+   * If true, the action will be active and can be triggered.
+   * If false, the action will not respond to interactions and won't be registered.
+   * @default false
    */
-  enabled?: boolean;
+  disabled?: boolean;
 
   /**
    * The type of action.
@@ -325,13 +326,105 @@ export type EventCallback<Type extends EventType> = (
   ...parameters: EventCallbackParameters[Type]
 ) => unknown | Promise<unknown>;
 
+/**
+ * Represents an event that can be registered and triggered in a Discord bot.
+ * Each event has a unique identifier and a type that determines how it will be triggered.
+ * @template Type - The type of event, which determines the parameters it handles.
+ * @see {@link EventType} for the list of available event types.
+ * @example
+ * ```typescript
+ * const myEvent: Event<EventType.MessageCreate> = {
+ *   identifier: 'my-message-event',
+ *   type: EventType.MessageCreate,
+ *   callback: (message) => {
+ *     console.log('Message received!', message);
+ *   },
+ * };
+ * ```
+ */
 export interface Event<Type extends EventType> {
+  /**
+   * A unique identifier for the event.
+   * This should be unique across all events of the same type.
+   * It is used to identify the event when it is triggered.
+   * @example 'my-message-event'
+   */
   identifier: string;
-  enabled?: boolean;
+
+  /**
+   * Whether the event is enabled or disabled.
+   * If true, the event will be active and can be triggered.
+   * If false, the event will not respond and won't be registered.
+   * @default false
+   */
+  disabled?: boolean;
+
+  /**
+   * The type of event.
+   * This determines how the event will be triggered and what parameters it will handle.
+   * @see {@link EventType}
+   * @example EventType.MessageCreate
+   */
   type: Type;
+
+  /**
+   * A human-readable name for the event.
+   * This is optional and can be used for documentation or debugging purposes.
+   * @example 'My Message Event'
+   * @default null
+   */
   name?: string | null;
+
+  /**
+   * A description of the event.
+   * This is optional and can be used to provide more context about what the event does.
+   * @example 'This event handles new messages.'
+   * @default null
+   */
   description?: string | null;
+
+  /**
+   * An array of tags associated with the event.
+   * Tags can be used for categorization or filtering events.
+   * @example ['messages', 'logging']
+   * @default null
+   */
   tags?: string[] | null;
+
+  /**
+   * Usage instructions for the event.
+   * This can be a string, an array of strings, or an object containing text and an optional image or GIF URL.
+   * It provides guidance on how to use the event.
+   * @example '`messageCreate`'
+   * @example
+   * ```json
+   * [
+   *   "Triggered when a message is created.",
+   *   "Can be used for logging or moderation."
+   * ]
+   * ```
+   * @example
+   * ```json
+   * {
+   *   "text": "Handles new messages in the server.",
+   *   "imageOrGifUrl": "https://example.com/event.png"
+   * }
+   * ```
+   * @default null
+   */
   usage?: string | string[] | { text: string | string[]; imageOrGifUrl?: string } | null;
+
+  /**
+   * The callback function that will be executed when the event is triggered.
+   * This function receives the event parameters as its arguments.
+   * @param parameters - The parameters for the event, as defined by EventCallbackParameters.
+   * @returns unknown | Promise<unknown>
+   * @example
+   * ```typescript
+   * (message) => {
+   *   console.log('Event triggered:', message);
+   * }
+   * ```
+   */
   callback: EventCallback<Type>;
 }
