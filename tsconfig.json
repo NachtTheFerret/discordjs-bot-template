@@ -2,18 +2,10 @@
   // Specifies which folders/files to include for compilation
   "include": ["src"],
 
-  // Specifies which folders/files to exclude from compilation
-  // This is useful to avoid compiling unnecessary files like node_modules or build outputs
-  "exclude": ["node_modules", "dist"],
-
   "compilerOptions": {
     // Enable all strict type-checking options
     // This is a good practice to catch potential issues early
     "strict": true,
-
-    // Specify module code generation: CommonJS for Node.js
-    // This is the module system used by Node.js
-    "module": "CommonJS",
 
     // How modules get resolved: use Node.js resolution
     // This allows TypeScript to resolve modules like Node.js does
@@ -39,17 +31,28 @@
     // while still being able to import CommonJS modules
     "esModuleInterop": true,
 
-    // Generates corresponding .map files for debugging
-    // Source maps help in debugging by mapping the compiled code back to the original TypeScript code
-    // This is useful for development and debugging purposes
-    "sourceMap": true,
-
-    // Generates declaration files (.d.ts)
-    // This is useful for libraries or modules that you want to share with others
-    "declaration": true,
-
     // Allows importing JSON files
     // This enables you to import JSON files directly in your TypeScript code
-    "resolveJsonModule": true
+    "resolveJsonModule": true,
+
+    // Enables the use of decorators
+    // Decorators are a way to add metadata to classes and methods
+    "importHelpers": true,
+
+    // Enables the use of const enums
+    // Const enums are a way to define enums that can be inlined at compile time
+    "preserveConstEnums": true,
+
+    // Enables the use of experimental features
+    // This allows you to use features that are not yet part of the official TypeScript specification
+    "lib": ["ESNext"],
+
+    // Enables the use of top-level await
+    // This allows you to use `await` at the top level of your modules
+    "skipDefaultLibCheck": true,
+
+    // Specifies how modules are preserved in the output
+    // "preserve" keeps the original module structure, which is useful for libraries
+    "module": "commonjs"
   }
 }

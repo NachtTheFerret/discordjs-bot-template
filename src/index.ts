@@ -1,7 +1,11 @@
-import { manager as shardingManager } from './sharding';
+import dotenv from 'dotenv';
+import { Client, GatewayIntentBits } from 'discord.js';
 import { ActionManager } from './managers/ActionManager';
 import { EventManager } from './managers/EventManager';
 import path from 'path';
+
+// Load environment variables from .env file
+dotenv.config();
 
 export const actions = new ActionManager();
 const ACTION_PATH = path.resolve(__dirname, './actions');
@@ -23,7 +27,7 @@ const start = async () => {
 
     if (actions.all.size) {
       console.log(
-        `\x1b[32m✅ Successfully loaded ${actions.all.size} action${actions.all.size > 1 ? 's' : ''}.\x1b[0m`
+        `\x1b[33m🌟 Successfully loaded ${actions.all.size} action${actions.all.size > 1 ? 's' : ''}.\x1b[0m`
       );
     } else {
       console.warn(`\x1b[33m⚠️  No actions were loaded.\x1b[0m`);
@@ -39,23 +43,41 @@ const start = async () => {
     });
 
     if (events.all.size) {
-      console.log(`\x1b[32m✅ Successfully loaded ${events.all.size} event${events.all.size > 1 ? 's' : ''}.\x1b[0m`);
+      console.log(`\x1b[33m🌟 Successfully loaded ${events.all.size} event${events.all.size > 1 ? 's' : ''}.\x1b[0m`);
     } else {
       console.warn(`\x1b[33m⚠️  No events were loaded.\x1b[0m`);
     }
 
-    // # Start the sharding manager
     console.log('');
-    console.log(`\x1b[34m🔄 Starting sharding manager...\x1b[0m`);
+    console.log('\x1b[34m🔄 Initializing Discord bot client...\x1b[0m');
 
-    await shardingManager.spawn();
+    const client = new Client({
+      intents: [GatewayIntentBits.Guilds],
+    }) as Client<true>;
+
+    let count = 0;
+    events.all.forEach((event) => {
+      try {
+        if (!event.disabled && !!event.callback) {
+          events.listen(client, event.identifier);
+          count++;
+        }
+      } catch (error) {
+        const message = error instanceof Error ? error.message : String(error);
+        console.error(`❌ Failed to listen to event ${event.identifier}: ${message}`);
+      }
+    });
+
+    if (count === 0) {
+      console.warn(`\x1b[33m⚠️  No events were successfully listened to.\x1b[0m`);
+    } else {
+      console.log(`\x1b[33m🔔 Successfully listened to ${count} event${count > 1 ? 's' : ''}.\x1b[0m`);
+    }
+
+    await client.login(process.env.DISCORD_BOT_TOKEN);
 
     console.log('');
-    console.log(
-      `\x1b[32m🟢 Bot is ready and running with ${shardingManager.totalShards} shard${
-        shardingManager.totalShards != 'auto' && shardingManager.totalShards > 1 ? 's' : ''
-      }.\x1b[0m`
-    );
+    console.log(`\x1b[32m✅  Bot is connected to Discord with ${client.user.displayName}\x1b[0m`);
   } catch (error) {
     console.error(
       `\x1b[31m❌ An error occurred while starting the bot: ${

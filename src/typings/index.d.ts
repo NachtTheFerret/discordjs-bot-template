@@ -10,6 +10,7 @@ import {
   ChatInputApplicationCommandData,
   ChatInputCommandInteraction,
   Client,
+  CloseEvent,
   DMChannel,
   Entitlement,
   ForumChannel,
@@ -63,9 +64,10 @@ import {
   VoiceChannel,
   VoiceChannelEffect,
   VoiceState,
+  Events as EventType,
 } from 'discord.js';
 
-import { ActionType, EventType } from './enum';
+import { ActionType } from './enum';
 
 export interface ActionCallbackParameters extends Record<ActionType, Interaction> {
   [ActionType.Autocomplete]: AutocompleteInteraction;

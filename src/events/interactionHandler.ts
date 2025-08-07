@@ -1,6 +1,6 @@
-import { Interaction } from 'discord.js';
+import { Interaction, Events as EventType } from 'discord.js';
 import { Event } from '../typings';
-import { ActionType, EventType } from '../typings/enum';
+import { ActionType } from '../typings/enum';
 import { actions } from '..';
 
 const getActionTypeFromInteraction = (interaction: Interaction): ActionType | null => {
@@ -18,7 +18,7 @@ const getActionTypeFromInteraction = (interaction: Interaction): ActionType | nu
   return null;
 };
 
-const getIdentifierFromInteraction = (interaction: Interaction): string => {
+const getIdentifierFromInteraction = (interaction: Interaction): string | null => {
   if (interaction.isChatInputCommand()) return interaction.commandName;
   if (interaction.isMessageContextMenuCommand()) return interaction.commandName;
   if (interaction.isUserContextMenuCommand()) return interaction.commandName;
@@ -30,7 +30,7 @@ const getIdentifierFromInteraction = (interaction: Interaction): string => {
   if (interaction.isChannelSelectMenu()) return interaction.customId;
   if (interaction.isModalSubmit()) return interaction.customId;
   if (interaction.isAutocomplete()) return interaction.commandName;
-  throw new Error(`Unknown interaction type: ${interaction.type}`);
+  return null;
 };
 
 export default <Event<EventType.InteractionCreate>>{
@@ -40,7 +40,7 @@ export default <Event<EventType.InteractionCreate>>{
   callback: async (interaction) => {
     // Check if the interaction is valid and get the action type
     const type = getActionTypeFromInteraction(interaction);
-    if (!type) throw new Error(`Unknown interaction type: ${interaction.type}`);
+    if (type === null) throw new Error(`Unknown interaction type: ${interaction.type}`);
 
     // Get the identifier for the action
     const identifier = getIdentifierFromInteraction(interaction);
@@ -55,7 +55,6 @@ export default <Event<EventType.InteractionCreate>>{
     // Execute the action's callback with the interaction
     await action.callback(interaction as any); // Use of `any` is to bypass type checking for the interaction, don't want to do multiple type checks here
   },
-
   tags: ['default', 'interaction', 'auto-handler'],
   disabled: false,
 };

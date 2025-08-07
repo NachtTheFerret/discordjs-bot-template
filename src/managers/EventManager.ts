@@ -1,6 +1,5 @@
-import { Collection } from 'discord.js';
-import { Event, EventCallback } from '../typings';
-import { EventType } from '../typings/enum';
+import { Client, Collection, Events as EventType } from 'discord.js';
+import { Event } from '../typings';
 import fs from 'fs';
 import path from 'path';
 
@@ -17,7 +16,38 @@ export class EventManager {
     if (this.collection.has(event.identifier) && !force) {
       throw new Error(`Event with identifier ${event.identifier} already exists.`);
     }
+
     this.collection.set(event.identifier, event);
+  }
+
+  /**
+   * Listens to an event for a specific client.
+   * It will throw an error if the event does not exist, is disabled, or does
+   * @param client Client to listen to the event on.
+   * @param identifier Identifier of the event to listen to.
+   * @throws {Error} If the event does not exist, is disabled, or does not have a valid callback function.
+   */
+  public listen(client: Client, identifier: string): void {
+    const event = this.collection.get(identifier);
+    if (!event) throw new Error(`Event with identifier ${identifier} does not exist.`);
+    if (event.disabled) throw new Error(`Event ${identifier} is disabled.`);
+    if (!event.callback) throw new Error(`Event ${identifier} does not have a valid callback function.`);
+
+    client.on(event.type as any, event.callback);
+  }
+
+  /**
+   * Mutes an event for a specific client.
+   * It will throw an error if the event does not exist or does not have a valid callback function.
+   * @param client Client to mute the event on.
+   * @param identifier Identifier of the event to mute.
+   */
+  public mute(client: Client, identifier: string): void {
+    const event = this.collection.get(identifier);
+    if (!event) throw new Error(`Event with identifier ${identifier} does not exist.`);
+    if (!event.callback) throw new Error(`Event ${identifier} does not have a valid callback function.`);
+
+    client.off(event.type as any, event.callback);
   }
 
   /**
@@ -114,18 +144,5 @@ export class EventManager {
    */
   public get all(): Collection<string, Event<EventType>> {
     return this.collection.clone();
-  }
-
-  public getListenerFromCallback(callback: EventCallback<EventType>): EventCallback<EventType> {
-    return async (...args: any[]) => {
-      try {
-        await callback(...args);
-      } catch (error) {
-        console.error(
-          `\x1b[31m❌ Error in event callback: ${error instanceof Error ? error.message : String(error)}\x1b[0m`
-        );
-        console.error('Stack trace:', error instanceof Error ? error.stack : 'No stack trace available');
-      }
-    };
   }
 }

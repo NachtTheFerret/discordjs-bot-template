@@ -1,3 +1,4 @@
+import { Locale } from 'discord.js';
 import { Action } from '../../typings';
 import { ActionType } from '../../typings/enum';
 
@@ -9,10 +10,11 @@ export default <Action<ActionType.ChatInput>>{
     name: 'ping',
     description: 'Replies with Pong!',
     descriptionLocalizations: {
-      fr: 'Répond avec Pong !',
-      en: 'Replies with Pong!',
-      de: 'Antwortet mit Pong!',
-      es: '¡Responde con Pong!',
+      [Locale.French]: 'Répond avec Pong !',
+      [Locale.German]: 'Antwortet mit Pong!',
+      [Locale.SpanishES]: '¡Responde con Pong!',
+      [Locale.Italian]: 'Risponde con Pong!',
+      [Locale.PortugueseBR]: 'Responde com Pong!',
     },
   },
 
