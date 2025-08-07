@@ -13,6 +13,10 @@ const ACTION_PATH = path.resolve(__dirname, './actions');
 export const events = new EventManager();
 const EVENT_PATH = path.resolve(__dirname, './events');
 
+export const client = new Client({
+  intents: [GatewayIntentBits.Guilds],
+}) as Client<true>;
+
 const start = async () => {
   try {
     const failedActionFiles = await actions.loadFolder(ACTION_PATH, true, false);
@@ -50,10 +54,6 @@ const start = async () => {
 
     console.log('');
     console.log('\x1b[34m🔄 Initializing Discord bot client...\x1b[0m');
-
-    const client = new Client({
-      intents: [GatewayIntentBits.Guilds],
-    }) as Client<true>;
 
     let count = 0;
     events.all.forEach((event) => {
