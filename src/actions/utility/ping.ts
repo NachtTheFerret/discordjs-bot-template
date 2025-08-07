@@ -23,11 +23,11 @@ import { ActionType } from '../../typings/enum';
 export default <Action<ActionType.ChatInput>>{
   /**
    * The identifier for this action.
-   * This should be unique across all actions.
+   * This should be unique across all actions of the same type.
    * It is used to reference the action in the code and in Discord.
    *
    * Français : L'identifiant de cette action.
-   * Cela doit être unique parmi toutes les actions.
+   * Cela doit être unique parmi toutes les actions du même type.
    * Il est utilisé pour référencer l'action dans le code et dans Discord.
    */
   identifier: 'ping',
