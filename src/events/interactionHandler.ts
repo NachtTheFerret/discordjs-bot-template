@@ -161,17 +161,18 @@ export default <Event<EventType.InteractionCreate>>{
        */
       await action.callback(interaction as any); // Use of `any` is to bypass type checking for the interaction, don't want to do multiple type checks here
     } catch (error) {
-      logger.addContext('error', error);
+      logger.addContext('error', error); // Add the error to the logger context for better debugging
 
-      const locale = interaction.locale;
+      const locale = interaction.locale; // Get the locale from the interaction, this is used to retrieve the correct message for the error
 
       if (error instanceof CustomError) {
         const message =
           messages[error.code][locale] ||
-          messages[error.code].default ||
-          messages.UNKNOWN_ERROR[locale] ||
-          messages.UNKNOWN_ERROR.default;
+          messages[error.code].default || // Fallback to the default message if the locale is not found
+          messages.UNKNOWN_ERROR[locale] || // Fallback to the unknown error message if the error code is not found
+          messages.UNKNOWN_ERROR.default; // Fallback to the default unknown error message
 
+        // Get the content of the custom message based on the error code and locale
         const content = (await getCustomMessageContent(message, logger.getContext())) as string;
         if (interaction.isRepliable()) await interaction.reply({ content, flags: [MessageFlags.Ephemeral] });
       } else {
