@@ -2,6 +2,8 @@ import { Client, Collection, Events as EventType } from 'discord.js';
 import { Event } from '../typings';
 import fs from 'fs';
 import path from 'path';
+import { Logger } from '../services/Logger';
+import { CustomErrorType } from '../typings/enum';
 
 export const BASE_EVENTS_PATH = path.resolve(__dirname, '../events');
 
@@ -13,9 +15,12 @@ export class EventManager {
    * If an event with the same identifier already exists, it will throw an error unless `force` is set to true.
    */
   public register(event: Event<EventType>, force = false): void {
-    if (this.collection.has(event.identifier) && !force) {
-      throw new Error(`Event with identifier ${event.identifier} already exists.`);
-    }
+    const logger = new Logger({ event, force });
+    if (this.collection.has(event.identifier) && !force)
+      throw logger.error(
+        CustomErrorType.EVENT_IDENTIFIER_ALREADY_EXISTS,
+        `Event with identifier ${event.identifier} already exists.`
+      );
 
     this.collection.set(event.identifier, event);
   }
@@ -28,10 +33,17 @@ export class EventManager {
    * @throws {Error} If the event does not exist, is disabled, or does not have a valid callback function.
    */
   public listen(client: Client, identifier: string): void {
+    const logger = new Logger({ client, identifier });
     const event = this.collection.get(identifier);
-    if (!event) throw new Error(`Event with identifier ${identifier} does not exist.`);
-    if (event.disabled) throw new Error(`Event ${identifier} is disabled.`);
-    if (!event.callback) throw new Error(`Event ${identifier} does not have a valid callback function.`);
+
+    if (!event)
+      throw logger.error(CustomErrorType.EVENT_NOT_FOUND, `Event with identifier ${identifier} does not exist.`);
+    if (event.disabled) throw logger.error(CustomErrorType.EVENT_DISABLED, `Event ${identifier} is disabled.`);
+    if (!event.callback)
+      throw logger.error(
+        CustomErrorType.EVENT_WITHOUT_CALLBACK,
+        `Event ${identifier} does not have a valid callback function.`
+      );
 
     client.on(event.type as any, event.callback);
   }
@@ -43,9 +55,16 @@ export class EventManager {
    * @param identifier Identifier of the event to mute.
    */
   public mute(client: Client, identifier: string): void {
+    const logger = new Logger({ client, identifier });
     const event = this.collection.get(identifier);
-    if (!event) throw new Error(`Event with identifier ${identifier} does not exist.`);
-    if (!event.callback) throw new Error(`Event ${identifier} does not have a valid callback function.`);
+
+    if (!event)
+      throw logger.error(CustomErrorType.EVENT_NOT_FOUND, `Event with identifier ${identifier} does not exist.`);
+    if (!event.callback)
+      throw logger.error(
+        CustomErrorType.EVENT_WITHOUT_CALLBACK,
+        `Event ${identifier} does not have a valid callback function.`
+      );
 
     client.off(event.type as any, event.callback);
   }
@@ -55,21 +74,28 @@ export class EventManager {
    * The file must export a default event that matches the `Event` type.
    */
   public async load(file: string, force = false): Promise<void> {
+    const logger = new Logger({ file, force });
+
     const fullPath = path.resolve(BASE_EVENTS_PATH, file);
-    if (!fs.existsSync(fullPath)) throw new Error(`File ${fullPath} does not exist.`);
+    if (!fs.existsSync(fullPath))
+      throw logger.error(CustomErrorType.FILE_NOT_FOUND, `File ${fullPath} does not exist.`);
 
     const stats = fs.statSync(fullPath);
-    if (!stats.isFile()) throw new Error(`Path ${fullPath} is not a file.`);
+    if (!stats.isFile()) throw logger.error(CustomErrorType.INVALID_FILE_TYPE, `Path ${fullPath} is not a file.`);
 
     const ext = path.extname(fullPath);
     if (ext !== '.js' && ext !== '.ts')
-      throw new Error(`File ${fullPath} is not a valid event file (must end with .js or .ts).`);
+      throw logger.error(
+        CustomErrorType.INVALID_FILE_TYPE,
+        `File ${fullPath} is not a valid JavaScript or TypeScript file.`
+      );
 
     const data = await import(fullPath);
-    if (!data || !data.default) throw new Error(`File ${fullPath} does not export a default event.`);
+    if (!data || !data.default)
+      throw logger.error(CustomErrorType.NO_DEFAULT_EXPORT, `File ${fullPath} does not export a default event.`);
 
     const event: Event<EventType> = data.default;
-    if (event.disabled) throw new Error(`Event in ${fullPath} is disabled.`);
+    if (event.disabled) throw logger.error(CustomErrorType.EVENT_DISABLED, `Event ${event.identifier} is disabled.`);
 
     this.register(event, force);
   }
@@ -79,11 +105,15 @@ export class EventManager {
    * If `recursive` is true, it will load events from subfolders as well.
    */
   public async loadFolder(folder: string, recursive = true, force = false): Promise<{ error: Error; path: string }[]> {
+    const logger = new Logger({ folder, recursive, force });
+
     const fullPath = path.resolve(BASE_EVENTS_PATH, folder);
-    if (!fs.existsSync(fullPath)) throw new Error(`Folder ${fullPath} does not exist.`);
+    if (!fs.existsSync(fullPath))
+      throw logger.error(CustomErrorType.FOLDER_NOT_FOUND, `Folder ${fullPath} does not exist.`);
 
     const stats = fs.statSync(fullPath);
-    if (!stats.isDirectory()) throw new Error(`Path ${fullPath} is not a directory.`);
+    if (!stats.isDirectory())
+      throw logger.error(CustomErrorType.INVALID_FOLDER_TYPE, `Path ${fullPath} is not a directory.`);
 
     const files = fs.readdirSync(fullPath);
 
@@ -132,9 +162,11 @@ export class EventManager {
    * If the event does not exist, it will throw an error.
    */
   public update(identifier: string, event: Event<EventType>): void {
-    if (!this.collection.has(identifier)) {
-      throw new Error(`Event with identifier ${identifier} does not exist.`);
-    }
+    const logger = new Logger({ identifier, event });
+
+    if (!this.collection.has(identifier))
+      throw logger.error(CustomErrorType.EVENT_NOT_FOUND, `Event with identifier ${identifier} does not exist.`);
+
     this.collection.set(identifier, event);
   }
 

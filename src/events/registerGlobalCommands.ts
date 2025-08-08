@@ -59,5 +59,4 @@ export default <Event<EventType.ClientReady>>{
   },
 
   disabled: false,
-  tags: ['default', 'global_commands'],
 };

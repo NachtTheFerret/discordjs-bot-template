@@ -9,10 +9,13 @@
  * Il récupère l'action correspondante dans le gestionnaire d'actions et exécute sa fonction de rappel.
  */
 
-import { Interaction, Events as EventType } from 'discord.js';
+import { Interaction, Events as EventType, MessageFlags } from 'discord.js';
 import { Event } from '../typings'; // Importing the Event type to define the event structure with type safety
-import { ActionType } from '../typings/enum';
+import { ActionType, CustomErrorType } from '../typings/enum';
 import { actions } from '..'; // Récupère le gestionnaire d'actions
+import { Logger } from '../services/Logger';
+import { CustomError } from '../errors/CustomError';
+import messages, { getCustomMessageContent } from '../utils/messages';
 
 /**
  * Determines the action type from the interaction.
@@ -89,64 +92,95 @@ export default <Event<EventType.InteractionCreate>>{
    * Cette fonction est appelée lorsque l'événement est déclenché.
    */
   callback: async (interaction) => {
-    /**
-     * Check if the interaction is valid.
-     * If the interaction is not valid, we throw an error.
-     * This is necessary to ensure that we can handle the interaction correctly.
-     *
-     * Français : Vérifie si l'interaction est valide.
-     * Si l'interaction n'est pas valide, nous lançons une erreur.
-     * Ceci est nécessaire pour s'assurer que nous pouvons gérer l'interaction correctement.
-     */
-    const type = getActionTypeFromInteraction(interaction);
-    if (type === null) throw new Error(`Unknown interaction type: ${interaction.type}`);
+    const logger = new Logger({ interaction });
 
-    /**
-     * Retrieve the identifier from the interaction.
-     * If the identifier is not found, we throw an error.
-     * This is necessary to ensure that we can find the corresponding action in the actions manager.
-     *
-     * Français : Récupère l'identifiant de l'interaction.
-     * Si l'identifiant n'est pas trouvé, nous lançons une erreur.
-     * Ceci est nécessaire pour s'assurer que nous pouvons trouver l'action correspondante dans le gestionnaire d'actions.
-     */
-    const identifier = getIdentifierFromInteraction(interaction);
-    if (!identifier) throw new Error(`No identifier found for interaction type: ${type}`);
+    try {
+      /**
+       * Check if the interaction is valid.
+       * If the interaction is not valid, we throw an error.
+       * This is necessary to ensure that we can handle the interaction correctly.
+       *
+       * Français : Vérifie si l'interaction est valide.
+       * Si l'interaction n'est pas valide, nous lançons une erreur.
+       * Ceci est nécessaire pour s'assurer que nous pouvons gérer l'interaction correctement.
+       */
+      const type = getActionTypeFromInteraction(interaction);
+      if (type === null)
+        throw logger.error(
+          CustomErrorType.INTERACTION_TYPE_NOT_SUPPORTED,
+          `Interaction type ${interaction.type} is not supported`
+        );
 
-    /**
-     * Retrieve the action from the actions manager.
-     * If the action is not found, we throw an error.
-     * Or if the action is disabled or has no callback defined, we throw an error.
-     * This is necessary to ensure that we can execute the action's callback.
-     *
-     * Français : Récupère l'action dans le gestionnaire d'actions.
-     * Si l'action n'est pas trouvée, nous lançons une erreur.
-     * Ou si l'action est désactivée ou n'a pas de fonction de rappel définie, nous lançons une erreur.
-     * Ceci est nécessaire pour s'assurer que nous pouvons exécuter la fonction de rappel de l'action.
-     */
-    const action = actions.get(type, identifier);
-    if (!action) throw new Error(`No action found for type: ${type} and identifier: ${identifier}`);
-    if (action?.disabled) throw new Error(`Action ${identifier} of type ${type} is disabled`);
-    if (!action.callback) throw new Error(`Action ${identifier} of type ${type} has no callback defined`);
+      /**
+       * Retrieve the identifier from the interaction.
+       * If the identifier is not found, we throw an error.
+       * This is necessary to ensure that we can find the corresponding action in the actions manager.
+       *
+       * Français : Récupère l'identifiant de l'interaction.
+       * Si l'identifiant n'est pas trouvé, nous lançons une erreur.
+       * Ceci est nécessaire pour s'assurer que nous pouvons trouver l'action correspondante dans le gestionnaire d'actions.
+       */
+      const identifier = getIdentifierFromInteraction(interaction);
+      if (!identifier)
+        throw logger.error(
+          CustomErrorType.ACTION_NOT_FOUND,
+          `No identifier found for interaction type ${type} and identifier ${identifier}`
+        );
 
-    /**
-     * Execute the action's callback with the interaction.
-     * This is where the action's logic is executed.
-     *
-     * Français : Exécute la fonction de rappel de l'action avec l'interaction.
-     * C'est ici que la logique de l'action est exécutée.
-     */
-    await action.callback(interaction as any); // Use of `any` is to bypass type checking for the interaction, don't want to do multiple type checks here
+      /**
+       * Retrieve the action from the actions manager.
+       * If the action is not found, we throw an error.
+       * Or if the action is disabled or has no callback defined, we throw an error.
+       * This is necessary to ensure that we can execute the action's callback.
+       *
+       * Français : Récupère l'action dans le gestionnaire d'actions.
+       * Si l'action n'est pas trouvée, nous lançons une erreur.
+       * Ou si l'action est désactivée ou n'a pas de fonction de rappel définie, nous lançons une erreur.
+       * Ceci est nécessaire pour s'assurer que nous pouvons exécuter la fonction de rappel de l'action.
+       */
+      const action = actions.get(type, identifier);
+
+      logger.addContext('action', action);
+
+      if (!action)
+        throw logger.error(CustomErrorType.ACTION_NOT_FOUND, `Action ${identifier} of type ${type} not found`);
+      if (action?.disabled)
+        throw logger.error(CustomErrorType.ACTION_DISABLED, `Action ${identifier} of type ${type} is disabled`);
+      if (!action.callback)
+        throw logger.error(
+          CustomErrorType.ACTION_WITHOUT_CALLBACK,
+          `Action ${identifier} of type ${type} has no callback defined`
+        );
+
+      /**
+       * Execute the action's callback with the interaction.
+       * This is where the action's logic is executed.
+       *
+       * Français : Exécute la fonction de rappel de l'action avec l'interaction.
+       * C'est ici que la logique de l'action est exécutée.
+       */
+      await action.callback(interaction as any); // Use of `any` is to bypass type checking for the interaction, don't want to do multiple type checks here
+    } catch (error) {
+      logger.addContext('error', error);
+
+      const locale = interaction.locale;
+
+      if (error instanceof CustomError) {
+        const message =
+          messages[error.code][locale] ||
+          messages[error.code].default ||
+          messages.UNKNOWN_ERROR[locale] ||
+          messages.UNKNOWN_ERROR.default;
+
+        const content = (await getCustomMessageContent(message, logger.getContext())) as string;
+        if (interaction.isRepliable()) await interaction.reply({ content, flags: [MessageFlags.Ephemeral] });
+      } else {
+        const message = messages.UNKNOWN_ERROR[locale] || messages.UNKNOWN_ERROR.default;
+        const content = (await getCustomMessageContent(message, logger.getContext())) as string;
+        if (interaction.isRepliable()) await interaction.reply({ content, flags: [MessageFlags.Ephemeral] });
+      }
+    }
   },
-
-  /**
-   * Tags for this event.
-   * These can be used to categorize or filter events.
-   *
-   * Français : Étiquettes pour cet événement.
-   * Celles-ci peuvent être utilisées pour catégoriser ou filtrer les événements.s
-   */
-  tags: ['default', 'interaction', 'auto-handler'],
 
   /**
    * Whether this event is disabled.

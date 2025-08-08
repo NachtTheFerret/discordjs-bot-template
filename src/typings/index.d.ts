@@ -65,9 +65,14 @@ import {
   VoiceChannelEffect,
   VoiceState,
   Events as EventType,
+  Locale,
+  MessagePayload,
+  MessageCreateOptions,
+  BaseMessageOptions,
+  InteractionReplyOptions,
 } from 'discord.js';
 
-import { ActionType } from './enum';
+import { ActionType, CustomErrorSeverity, CustomMessageType } from './enum';
 
 export interface ActionCallbackParameters extends Record<ActionType, Interaction> {
   [ActionType.Autocomplete]: AutocompleteInteraction;
@@ -400,37 +405,6 @@ export interface Event<Type extends EventType> {
   type: Type;
 
   /**
-   * An array of tags associated with the event.
-   * Tags can be used for categorization or filtering events.
-   * @example ['messages', 'logging']
-   * @default null
-   */
-  tags?: string[] | null;
-
-  /**
-   * Usage instructions for the event.
-   * This can be a string, an array of strings, or an object containing text and an optional image or GIF URL.
-   * It provides guidance on how to use the event.
-   * @example '`messageCreate`'
-   * @example
-   * ```json
-   * [
-   *   "Triggered when a message is created.",
-   *   "Can be used for logging or moderation."
-   * ]
-   * ```
-   * @example
-   * ```json
-   * {
-   *   "text": "Handles new messages in the server.",
-   *   "imageOrGifUrl": "https://example.com/event.png"
-   * }
-   * ```
-   * @default null
-   */
-  usage?: string | string[] | { text: string | string[]; imageOrGifUrl?: string } | null;
-
-  /**
    * The callback function that will be executed when the event is triggered.
    * This function receives the event parameters as its arguments.
    * @param parameters - The parameters for the event, as defined by EventCallbackParameters.
@@ -443,4 +417,68 @@ export interface Event<Type extends EventType> {
    * ```
    */
   callback: EventCallback<Type>;
+}
+
+/**
+ * Represents the content of a custom message that can be localized.
+ * This can be a string, a base message options object, or a function that returns either.
+ *
+ * Français : Représente le contenu d'un message personnalisé qui peut être localisé.
+ * Cela peut être une chaîne de caractères, un objet d'options de message de base,
+ * ou une fonction qui retourne l'un ou l'autre.
+ */
+export type CustomLocalizedMessageContent =
+  | string
+  | BaseMessageOptions
+  | ((...params: unknown[]) => string | BaseMessageOptions);
+
+export interface CustomLocalizedMessage {
+  /**
+   * The default message content for the custom localized message.
+   * This is used when no specific locale is provided or when the locale is not found.
+   *
+   * Français : Le contenu du message par défaut pour le message localisé personnalisé.
+   * Cela est utilisé lorsque aucune locale spécifique n'est fournie ou lorsque la locale n'est
+   */
+  default: CustomLocalizedMessageContent;
+
+  /**
+   * Additional localized message content for specific locales.
+   * The keys are locale identifiers based on the Discord.js Locale enum
+   * If a locale is not found, the default message will be used.
+   *
+   * Français : Contenu de message localisé supplémentaire pour des locales spécifiques.
+   * Les clés sont des identifiants de locale basés sur l'énumération Locale de Discord.js.
+   * Si une locale n'est pas trouvée, le message par défaut sera utilisé.
+   */
+  [locale: string]: CustomLocalizedMessageContent | undefined;
+}
+
+export interface CustomErrorPayload {
+  /**
+   * The message configuration for the custom error.
+   * This includes a default message and an optional code for localization.
+   *
+   * Français : La configuration du message pour l'erreur personnalisée.
+   * Cela inclut un message par défaut et un code optionnel pour la localisation.
+   */
+  message: { default: string; code?: CustomMessageType };
+
+  /**
+   * The severity of the custom error.
+   * This indicates how critical the error is and whether it should be logged.
+   *
+   * Français : La sévérité de l'erreur personnalisée.
+   * Cela indique à quel point l'erreur est critique et si elle doit être enregistrée.
+   */
+  severity?: CustomErrorSeverity;
+
+  /**
+   * Whether the error should be logged.
+   * If true, the error will be logged to the console or a logging service.
+   *
+   * Français : Si l'erreur doit être enregistrée.
+   * Si vrai, l'erreur sera enregistrée dans la console ou un service de journalisation.
+   */
+  loggable?: boolean;
 }

@@ -18,7 +18,8 @@
 
 import { Locale } from 'discord.js';
 import { Action } from '../../typings'; // Importing the Action type to define the action structure with type safety
-import { ActionType } from '../../typings/enum';
+import { ActionType, CustomErrorType } from '../../typings/enum';
+import { CustomError } from '../../errors/CustomError';
 
 export default <Action<ActionType.ChatInput>>{
   /**
@@ -70,6 +71,9 @@ export default <Action<ActionType.ChatInput>>{
    * Cette fonction est appelée lorsque l'action est invoquée.
    */
   callback: async (interaction) => {
+    // Testing example of throwing a custom error
+    throw new CustomError(CustomErrorType.EVENT_NOT_FOUND);
+
     await interaction.reply('Pong!');
   },
 

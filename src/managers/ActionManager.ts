@@ -1,8 +1,9 @@
 import { Collection } from 'discord.js';
-import { Action } from '../typings';
-import { ActionType } from '../typings/enum';
 import fs from 'fs';
 import path from 'path';
+import { Action } from '../typings';
+import { ActionType, CustomErrorType } from '../typings/enum';
+import { Logger } from '../services/Logger';
 
 export const BASE_ACTIONS_PATH = path.resolve(__dirname, '../actions');
 
@@ -29,12 +30,11 @@ export class ActionManager {
    * ```
    */
   public register(action: Action<ActionType>, force = false): void {
+    const logger = new Logger({ action });
     const prefix = this.getTypePrefix(action.type);
     const identifier = prefix + '-' + action.identifier;
 
-    if (this.collection.has(identifier) && !force) {
-      throw new Error(`Action with identifier ${identifier} already exists.`);
-    }
+    if (this.collection.has(identifier) && !force) throw logger.error(CustomErrorType.ACTION_IDENTIFIER_ALREADY_EXISTS);
 
     this.collection.set(identifier, action);
   }
@@ -51,21 +51,29 @@ export class ActionManager {
    * ```
    */
   public async load(file: string, force = false): Promise<void> {
+    const logger = new Logger({ file, force });
+
     const fullPath = path.resolve(BASE_ACTIONS_PATH, file);
-    if (!fs.existsSync(fullPath)) throw new Error(`File ${fullPath} does not exist.`);
+    if (!fs.existsSync(fullPath))
+      throw logger.error(CustomErrorType.FILE_NOT_FOUND, `File ${fullPath} does not exist.`);
 
     const stats = fs.statSync(fullPath);
-    if (!stats.isFile()) throw new Error(`Path ${fullPath} is not a file.`);
+    if (!stats.isFile()) throw logger.error(CustomErrorType.INVALID_FILE_TYPE, `Path ${fullPath} is not a file.`);
 
     const ext = path.extname(fullPath);
     if (ext !== '.js' && ext !== '.ts')
-      throw new Error(`File ${fullPath} is not a valid action file (must end with .js or .ts).`);
+      throw logger.error(
+        CustomErrorType.INVALID_FILE_TYPE,
+        `File ${fullPath} is not a valid JavaScript or TypeScript file.`
+      );
 
     const data = await import(fullPath);
-    if (!data || !data.default) throw new Error(`File ${fullPath} does not export a default action.`);
+    if (!data || !data.default)
+      throw logger.error(CustomErrorType.NO_DEFAULT_EXPORT, `File ${fullPath} does not export a default action.`);
 
     const action: Action<ActionType> = data.default;
-    if (action.disabled) throw new Error(`Action in ${fullPath} is disabled.`);
+    if (action.disabled)
+      throw logger.error(CustomErrorType.ACTION_DISABLED, `Action ${action.identifier} is disabled.`);
 
     this.register(action, force);
   }
@@ -80,11 +88,15 @@ export class ActionManager {
    * @throws {Error} If the folder does not exist or is not a directory.
    */
   public async loadFolder(folder: string, recursive = true, force = false): Promise<{ error: Error; path: string }[]> {
+    const logger = new Logger({ folder, recursive, force });
+
     const fullPath = path.resolve(BASE_ACTIONS_PATH, folder);
-    if (!fs.existsSync(fullPath)) throw new Error(`Folder ${fullPath} does not exist.`);
+    if (!fs.existsSync(fullPath))
+      throw logger.error(CustomErrorType.FOLDER_NOT_FOUND, `Folder ${fullPath} does not exist.`);
 
     const stats = fs.statSync(fullPath);
-    if (!stats.isDirectory()) throw new Error(`Path ${fullPath} is not a directory.`);
+    if (!stats.isDirectory())
+      throw logger.error(CustomErrorType.INVALID_FOLDER_TYPE, `Path ${fullPath} is not a directory.`);
 
     const files = fs.readdirSync(fullPath);
 
@@ -158,12 +170,12 @@ export class ActionManager {
    * @throws {Error} If the action with the specified identifier does not exist.
    */
   public update(type: ActionType, identifier: string, action: Action<ActionType>): void {
+    const logger = new Logger({ type, identifier, action });
     const prefix = this.getTypePrefix(type);
     const key = prefix + '-' + identifier;
 
-    if (!this.collection.has(key)) {
-      throw new Error(`Action with identifier ${key} does not exist.`);
-    }
+    if (!this.collection.has(key))
+      throw logger.error(CustomErrorType.ACTION_NOT_FOUND, `Action with identifier ${identifier} does not exist.`);
 
     this.collection.set(key, action);
   }
