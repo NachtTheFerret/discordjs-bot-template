@@ -3,56 +3,25 @@
   "include": ["src"],
 
   "compilerOptions": {
-    // Enable all strict type-checking options
-    // This is a good practice to catch potential issues early
-    "strict": true,
+    // Project Structure
+    "rootDir": "src", // Root directory of input files
+    "outDir": "dist", // Output directory for compiled files
 
-    // How modules get resolved: use Node.js resolution
-    // This allows TypeScript to resolve modules like Node.js does
-    "moduleResolution": "node",
+    // Language and Module Features
+    "target": "esnext", // Specify ECMAScript target version
+    "lib": ["ESNext"], // Enables the use of experimental features
+    "module": "commonjs", // Specifies how modules are preserved in the output
+    "moduleResolution": "node", // How modules get resolved: use Node.js resolution
+    "esModuleInterop": true, // Enables compatibility between CommonJS and ES Modules
+    "resolveJsonModule": true, // Allows importing JSON files
 
-    // Output directory for compiled files
-    // This is where the compiled JavaScript files will be placed
-    // It's a good practice to keep compiled files separate from source files
-    "outDir": "dist",
+    // Type Checking and Strictness
+    "strict": true, // Enable all strict type-checking options
+    "skipDefaultLibCheck": true, // Enables the use of top-level await
 
-    // Root directory of input files
-    // This is where TypeScript will look for source files
-    // It helps TypeScript understand the structure of your project
-    "rootDir": "src",
-
-    // Specify ECMAScript target version
-    // This determines the JavaScript version that TypeScript will compile to
-    // "esnext" allows you to use the latest JavaScript features
-    "target": "esnext",
-
-    // Enables compatibility between CommonJS and ES Modules
-    // This allows you to use `import` and `export` syntax in your code
-    // while still being able to import CommonJS modules
-    "esModuleInterop": true,
-
-    // Allows importing JSON files
-    // This enables you to import JSON files directly in your TypeScript code
-    "resolveJsonModule": true,
-
-    // Enables the use of decorators
-    // Decorators are a way to add metadata to classes and methods
-    "importHelpers": true,
-
-    // Enables the use of const enums
-    // Const enums are a way to define enums that can be inlined at compile time
-    "preserveConstEnums": true,
-
-    // Enables the use of experimental features
-    // This allows you to use features that are not yet part of the official TypeScript specification
-    "lib": ["ESNext"],
-
-    // Enables the use of top-level await
-    // This allows you to use `await` at the top level of your modules
-    "skipDefaultLibCheck": true,
-
-    // Specifies how modules are preserved in the output
-    // "preserve" keeps the original module structure, which is useful for libraries
-    "module": "commonjs"
+    // Experimental and Advanced Features
+    "experimentalDecorators": true, // Enables the use of decorators
+    "importHelpers": true, // Enables the use of decorators (helpers)
+    "preserveConstEnums": true // Enables the use of const enums
   }
 }

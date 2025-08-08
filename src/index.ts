@@ -17,6 +17,8 @@ import path from 'path';
 // Load environment variables from .env file
 dotenv.config();
 
+import { database } from './database'; // Load this after dotenv to ensure environment variables are available
+
 /**
  * ActionManager instance to manage bot actions.
  * It loads actions from the specified folder and provides methods to interact with them.
@@ -55,11 +57,29 @@ export const client = new Client({
  */
 const start = async () => {
   try {
-    const failedActionFiles = await actions.loadFolder(ACTION_PATH, true, false); // Load actions from the specified folder and get failed files
+    const isStaging = process.env.NODE_ENV === 'staging'; // Check if the environment is staging
+    const isDevelopment = process.env.NODE_ENV === 'development'; // Check if the environment is development
+
+    // Run the database
+    console.log('');
+    console.log('\x1b[34m🔄 Connecting to the database...\x1b[0m');
+    await database.authenticate(); // Authenticate the database connection
+    console.log('\x1b[32m✅ Database connection established successfully.\x1b[0m');
+
+    if (isDevelopment) {
+      await database.sync({ force: true }); // Sync the database in development mode
+      console.log('\x1b[33m🔄 Database synced in development mode (force).\x1b[0m');
+    }
+
+    if (isStaging) {
+      await database.sync({ alter: true }); // Sync the database in staging mode
+      console.log('\x1b[33m🔄 Database synced in staging mode (alter).\x1b[0m');
+    }
 
     // # Start to load actions
     console.log('');
     console.log(`\x1b[34m🔍 Attempting to load actions from ${ACTION_PATH}...\x1b[0m`);
+    const failedActionFiles = await actions.loadFolder(ACTION_PATH, true, false); // Load actions from the specified folder and get failed files
 
     failedActionFiles.forEach((failedFile) => {
       // Log the error for each failed action file
